@@ -11,36 +11,27 @@
 
 namespace Csa\Bundle\GuzzleBundle\Twig\Extension;
 
-use Twig\Extension\AbstractExtension;
-use Twig\TwigFilter;
-use Twig\TwigFunction;
-
 /**
  * Csa Guzzle Collector.
  *
  * @author Charles Sarrazin <charles@sarraz.in>
  */
-class GuzzleExtension extends AbstractExtension
+class GuzzleExtension extends \Twig_Extension
 {
     public function getFilters()
     {
         return [
-            new TwigFilter('csa_guzzle_pretty_print', [$this, 'prettyPrint']),
-            new TwigFilter('csa_guzzle_status_code_class', [$this, 'statusCodeClass']),
-            new TwigFilter('csa_guzzle_format_duration', [$this, 'formatDuration']),
-            new TwigFilter('csa_guzzle_short_uri', [$this, 'shortenUri']),
+            new \Twig_SimpleFilter('csa_guzzle_pretty_print', [$this, 'prettyPrint']),
+            new \Twig_SimpleFilter('csa_guzzle_status_code_class', [$this, 'statusCodeClass']),
+            new \Twig_SimpleFilter('csa_guzzle_format_duration', [$this, 'formatDuration']),
+            new \Twig_SimpleFilter('csa_guzzle_short_uri', [$this, 'shortenUri']),
         ];
     }
 
-    /**
-     * Get functions.
-     *
-     * @return TwigFunction[]
-     */
     public function getFunctions()
     {
         return [
-            new TwigFunction('csa_guzzle_detect_lang', [$this, 'detectLang']),
+            new \Twig_SimpleFunction('csa_guzzle_detect_lang', [$this, 'detectLang']),
         ];
     }
 
@@ -57,14 +48,6 @@ class GuzzleExtension extends AbstractExtension
         }
     }
 
-    /**
-     * Pretty print.
-     *
-     * @param $code
-     * @param $lang
-     *
-     * @return false|string
-     */
     public function prettyPrint($code, $lang)
     {
         switch ($lang) {
@@ -74,7 +57,7 @@ class GuzzleExtension extends AbstractExtension
                 $xml = new \DomDocument('1.0');
                 $xml->preserveWhiteSpace = false;
                 $xml->formatOutput = true;
-                $xml->loadXml($code, LIBXML_NOWARNING);
+                $xml->loadXml($code);
 
                 return $xml->saveXml();
             default:
@@ -127,11 +110,6 @@ class GuzzleExtension extends AbstractExtension
         );
     }
 
-    /**
-     * Get name.
-     *
-     * @return string
-     */
     public function getName()
     {
         return 'csa_guzzle';

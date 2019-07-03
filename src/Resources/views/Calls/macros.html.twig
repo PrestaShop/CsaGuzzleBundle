@@ -19,7 +19,7 @@
                     </ul>
                     {% else %}
                         {% if header == 'X-Debug-Token-Link' %}
-                            <a href="{{ values.0 }}" target="_blank">{{ values.0 }}</a>
+                            <a href="{{ uri|csa_guzzle_short_uri }}{{ values.0}}" target="_blank">{{ values.0 }}</a>
                         {% else %}
                             {{ values.0 }}
                         {% endif %}
@@ -74,7 +74,7 @@
             {% endif %}
             <tr>
                 <td>Process</td>
-                <td>{{ process_time | csa_guzzle_format_duration }}</td>
+                <td>{{ process_time|csa_guzzle_format_duration }}</td>
             </tr>
         </table>
 
@@ -87,21 +87,4 @@
             </div>
         </div>
     {% endif %}
-{% endmacro %}
-
-{% macro render_error(error) %}
-    <h4>Message</h4>
-    <p><pre>{{ error.message }}</pre></p>
-
-    <h4>Origin</h4>
-    <p><pre>{{ error.file }}({{ error.line }})</pre></p>
-
-    <h4>Stack trace</h4>
-    <pre><code class="language-text">{{error.trace|nl2br}}</code></pre>
-{% endmacro %}
-
-{% macro render_curl(curl) %}
-    <h4>cURL</h4>
-
-    <pre><code>{{ curl }}</code></pre>
 {% endmacro %}

@@ -15,17 +15,6 @@
                     {{ statusCode }} - {{ call.response is defined ? call.response.reasonPhrase : 'Unknown error' }}
                 </span>
                 {% if call.cache is defined %}<span class="badge cache {{ call.cache|lower }}">Cache {{ call.cache }}</span>{% endif %}
-                {% if call.mock is defined %}<span class="badge mock {{ call.mock|lower }}">Mock {{ call.mock }}</span>{% endif %}
-                {% if call.info %}
-                    {% if call.info.total_time > 1 %}
-                        {% set duration_color = 'error' %}
-                    {% elseif call.info.total_time < 0.2 %}
-                        {% set duration_color = 'success' %}
-                    {% else %}
-                        {% set duration_color = 'warning' %}
-                    {% endif %}
-                    <span class="badge duration {{ duration_color }}">{{ call.info.total_time|csa_guzzle_format_duration }}</span>
-                {% endif %}
             </header>
 
             <div class="accordion-content{{ loop.first ? ' expanded': '' }}">
@@ -36,9 +25,6 @@
                             {{ macros.render_infos(call.info) }}
                             {{ macros.render_headers(call.request.headers, call.uri) }}
                             {{ macros.render_body(call.request.body) }}
-                            {% if call.curl is defined %}
-                                {{ macros.render_curl(call.curl) }}
-                            {% endif %}
                         </div>
                     </div>
                     {% if call.response is defined %}
@@ -47,14 +33,6 @@
                             <div class="tab-content">
                                 {{ macros.render_headers(call.response.headers, call.uri) }}
                                 {{ macros.render_body(call.response.body) }}
-                            </div>
-                        </div>
-                    {% endif %}
-                    {% if call.error is not null %}
-                        <div class="tab">
-                            <h3 class="tab-title">Error</h3>
-                            <div class="tab-content">
-                                {{ macros.render_error(call.error) }}
                             </div>
                         </div>
                     {% endif %}

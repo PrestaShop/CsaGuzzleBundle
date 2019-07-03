@@ -11,21 +11,19 @@
 
 namespace Csa\Bundle\GuzzleBundle\DependencyInjection;
 
-use Csa\Bundle\GuzzleBundle\DependencyInjection\CompilerPass\MiddlewarePass;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface;
+use Csa\Bundle\GuzzleBundle\DependencyInjection\CompilerPass\SubscriberPass;
 use Symfony\Component\Config\FileLocator;
-use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\DefinitionDecorator;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
-use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
- * Csa Guzzle Extension.
+ * Love OSS Guzzle 5 Extension.
  *
  * @author Charles Sarrazin <charles@sarraz.in>
  */
@@ -37,106 +35,70 @@ class CsaGuzzleExtension extends Extension
 
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
 
-        $loader->load('middleware.xml');
+        $loader->load('subscribers.xml');
         $loader->load('collector.xml');
         $loader->load('twig.xml');
+        $loader->load('factory.xml');
+        $loader->load('services.xml');
+
+        $descriptionFactory = $container->getDefinition('csa_guzzle.description_factory');
 
         $dataCollector = $container->getDefinition('csa_guzzle.data_collector.guzzle');
-        $dataCollector->replaceArgument(0, $config['profiler']['max_body_size']);
-
-        if (!class_exists(Stopwatch::class) || !$config['profiler']['enabled']) {
-            $container->removeDefinition('csa_guzzle.middleware.stopwatch');
-        }
+        $dataCollector->addArgument($config['profiler']['max_body_size']);
 
         if (!$config['profiler']['enabled']) {
-            $container->removeDefinition('csa_guzzle.middleware.history');
+            $container->removeDefinition('csa_guzzle.subscriber.debug');
+            $container->removeDefinition('csa_guzzle.subscriber.stopwatch');
             $container->removeDefinition('csa_guzzle.data_collector.guzzle');
             $container->removeDefinition('csa_guzzle.twig.extension');
         }
 
-        if (method_exists($container, 'registerForAutoconfiguration') && $config['autoconfigure']) {
-            $container->registerForAutoconfiguration(ClientInterface::class)
-                ->addTag('csa_guzzle.client');
+        $loggerDefinition = $container->getDefinition('csa_guzzle.subscriber.logger');
+
+        if ($config['logger']['service']) {
+            $loggerDefinition->replaceArgument(0, new Reference($config['logger']['service']));
         }
 
-        $this->processLoggerConfiguration($config['logger'], $container);
+        if ($config['logger']['format']) {
+            $loggerDefinition->replaceArgument(1, $config['logger']['format']);
+        }
 
-        $this->processMockConfiguration($config['mock'], $container, $loader, $config['profiler']['enabled']);
+        if (!$config['logger']['enabled']) {
+            $container->removeDefinition('csa_guzzle.subscriber.logger');
+        }
 
-        $this->processCacheConfiguration($config['cache'], $container, $config['profiler']['enabled']);
+        $this->processCacheConfiguration($config['cache'], $container);
 
-        $this->processClientsConfiguration($config, $container, $config['profiler']['enabled']);
+        $definition = $container->getDefinition('csa_guzzle.client_factory');
+        $definition->replaceArgument(0, $config['factory_class']);
+
+        $this->processClientsConfiguration($config, $container, $descriptionFactory);
     }
 
-    private function processLoggerConfiguration(array $config, ContainerBuilder $container)
+    private function processCacheConfiguration(array $config, ContainerBuilder $container)
     {
         if (!$config['enabled']) {
-            $container->removeDefinition('csa_guzzle.middleware.logger');
-            $container->removeDefinition('csa_guzzle.logger.message_formatter');
+            $container->removeDefinition('csa_guzzle.subscriber.cache');
 
             return;
         }
 
-        $loggerDefinition = $container->getDefinition('csa_guzzle.middleware.logger');
+        $adapterId = $config['adapter']['service'];
 
-        if ($config['service']) {
-            $loggerDefinition->replaceArgument(0, new Reference($config['service']));
+        if ('doctrine' === $config['adapter']['type']) {
+            $adapterId = 'csa_guzzle.cache.adapter.doctrine';
+
+            $adapter = $container->getDefinition($adapterId);
+            $adapter->addArgument(new Reference($config['service']));
         }
 
-        if ($config['format']) {
-            $formatterDefinition = $container->getDefinition('csa_guzzle.logger.message_formatter');
-            $formatterDefinition->replaceArgument(0, $config['format']);
-        }
-
-        if ($config['level']) {
-            $loggerDefinition->replaceArgument(2, $config['level']);
-        }
+        $container->setAlias('csa_guzzle.default_cache_adapter', $adapterId);
     }
 
-    private function processMockConfiguration(array $config, ContainerBuilder $container, LoaderInterface $loader, $debug)
+    private function processClientsConfiguration(array $config, ContainerBuilder $container, Definition $descriptionFactory)
     {
-        if (!$config['enabled']) {
-            return;
-        }
-
-        $loader->load('mock.xml');
-
-        $storage = $container->getDefinition('csa_guzzle.mock.storage');
-        $storage->setArguments([
-            $config['storage_path'],
-            $config['request_headers_blacklist'],
-            $config['response_headers_blacklist'],
-        ]);
-
-        $middleware = $container->getDefinition('csa_guzzle.middleware.mock');
-        $middleware->replaceArgument(1, $config['mode']);
-
-        $middleware->replaceArgument(2, $debug);
-    }
-
-    private function processCacheConfiguration(array $config, ContainerBuilder $container, $debug)
-    {
-        if (!$config['enabled']) {
-            $container->removeDefinition('csa_guzzle.middleware.cache');
-
-            return;
-        }
-
-        $container->getDefinition('csa_guzzle.middleware.cache')->addArgument($debug);
-
-        $container->setAlias('csa_guzzle.cache_adapter', $config['adapter']);
-    }
-
-    private function processClientsConfiguration(array $config, ContainerBuilder $container, $debug)
-    {
-        if (empty($config['default_client'])) {
-            $keys = array_keys($config['clients']);
-            $config['default_client'] = reset($keys);
-        }
-
         foreach ($config['clients'] as $name => $options) {
             $client = new Definition($options['class']);
-            $client->setLazy($options['lazy']);
 
             if (isset($options['config'])) {
                 if (!is_array($options['config'])) {
@@ -146,54 +108,50 @@ class CsaGuzzleExtension extends Extension
                         gettype($options['config'])
                     ));
                 }
-                $client->addArgument($this->buildGuzzleConfig($options['config'], $debug));
+                $client->addArgument($this->buildGuzzleConfig($options['config']));
             }
 
-            $attributes = [];
+            $subscribers = $this->findSubscriberIds($options['subscribers']);
 
-            if (!empty($options['middleware'])) {
-                if ($debug) {
-                    $addDebugMiddleware = true;
-
-                    foreach ($options['middleware'] as $middleware) {
-                        if ('!' === ($middleware[0])) {
-                            $addDebugMiddleware = false;
-                        }
-                    }
-
-                    if ($addDebugMiddleware) {
-                        $options['middleware'] = array_merge($options['middleware'], ['stopwatch', 'history', 'logger']);
-                    }
-                }
-
-                $attributes['middleware'] = implode(' ', array_unique($options['middleware']));
-            }
-
-            $client->addTag(MiddlewarePass::CLIENT_TAG, $attributes);
-            $client->setPublic(true);
+            $client->addTag(
+                SubscriberPass::CLIENT_TAG,
+                count($subscribers) ? ['subscribers' => implode(',', $subscribers)] : []
+            );
 
             $clientServiceId = sprintf('csa_guzzle.client.%s', $name);
             $container->setDefinition($clientServiceId, $client);
 
-            if (isset($options['alias'])) {
-                $container->setAlias($options['alias'], $clientServiceId);
+            if (isset($options['description'])) {
+                $descriptionFactory->addMethodCall('addResource', [$name, $options['description']]);
+
+                $serviceDefinition = new DefinitionDecorator('csa_guzzle.service.abstract');
+                $serviceDefinition->addArgument(new Reference($clientServiceId));
+                $serviceDefinition->addArgument(new Expression(sprintf(
+                    'service("csa_guzzle.description_factory").getDescription("%s")',
+                    $name
+                )));
+                $container->setDefinition(sprintf('csa_guzzle.service.%s', $name), $serviceDefinition);
             }
 
-            if ($config['default_client'] === $name) {
-                $container->setAlias(ClientInterface::class, $clientServiceId);
-                $container->setAlias(Client::class, $clientServiceId);
+            if (isset($options['alias'])) {
+                $container->setAlias($options['alias'], $clientServiceId);
             }
         }
     }
 
-    private function buildGuzzleConfig(array $config, $debug)
+    private function findSubscriberIds(array $explicitlyConfiguredIds)
     {
-        if (isset($config['handler'])) {
-            $config['handler'] = new Reference($config['handler']);
-        }
+        return array_filter(array_keys($explicitlyConfiguredIds), function ($key) use ($explicitlyConfiguredIds) {
+            return isset($explicitlyConfiguredIds[$key]) && $explicitlyConfiguredIds[$key];
+        });
+    }
 
-        if ($debug && function_exists('curl_init')) {
-            $config['on_stats'] = [new Reference('csa_guzzle.data_collector.history_bag'), 'addStats'];
+    private function buildGuzzleConfig(array $config)
+    {
+        foreach (['message_factory', 'fsm', 'adapter', 'handler'] as $service) {
+            if (isset($config[$service])) {
+                $config[$service] = new Reference($config[$service]);
+            }
         }
 
         return $config;

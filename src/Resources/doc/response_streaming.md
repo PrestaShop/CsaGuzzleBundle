@@ -23,5 +23,3 @@ class MyController extends ContainerAware
     }
 }
 ```
-
-Next section: [Configuration reference](configuration_reference.md)

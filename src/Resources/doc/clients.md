@@ -15,11 +15,11 @@ Simply write the following code:
 csa_guzzle:
     clients:
         github_api:
-            config: # you can specify the options as in http://docs.guzzlephp.org/en/latest/quickstart.html#creating-a-client
-                base_uri: https://api.github.com
-                timeout: 2.0
-                headers:
-                    Accept: application/vnd.github.v3+json
+            config:
+                base_url: https://api.github.com
+                defaults:
+                    headers:
+                        Accept: application/vnd.github.v3+json
 ```
 
 The previous code will create a new service, called `csa_guzzle.client.github_api`, that you can use in your controller, or that you can inject in another service:
@@ -39,16 +39,6 @@ class MyController extends Controller
 }
 ```
 
-You may want to mark the service as [lazy](http://symfony.com/doc/current/components/dependency_injection/lazy_services.html).
-
-```yml
-csa_guzzle:
-    clients:
-        my_client:
-            lazy: true
-            # ...
-```
-
 If you override your client's class, you can also set the class for your client:
 
 ```yml
@@ -59,31 +49,17 @@ csa_guzzle:
             # ...
 ```
 
-Of course, you need to make sure that your client class' constructor has exactly the same signature as Guzzle's Client class.
+Of course, you need to make sure that your client class has no constructor arguments.
+
+If you need to pass constructor arguments to your class, then you should use the tag syntax (see below).
 
 Registering your own service
 ----------------------------
 
 To have a client supported by the bundle, simply tag it as such:
 
-**XML:**
-
 ```xml
 <service id="acme.client" class="%acme.client.class%">
-    <argument type="collection">
-        <argument key="base_uri">http://acme.com</argument>
-        <argument key="timeout">2.0</argument>
-    </argument>
     <tag name="csa_guzzle.client" />
 </service>
 ```
-
-**YAML:**
-
-```yml
-acme.client:
-    class: %acme.client.class%
-    arguments: [{ base_uri: http://acme.com, timeout: 2.0} ]
-```
-
-Next section: [Registering new middleware](middleware.md)

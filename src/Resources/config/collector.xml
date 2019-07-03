@@ -6,12 +6,9 @@
 
     <services>
 
-        <service id="csa_guzzle.data_collector.history_bag" class="Csa\GuzzleHttp\Middleware\History\History" public="true" />
-
         <service id="csa_guzzle.data_collector.guzzle" class="Csa\Bundle\GuzzleBundle\DataCollector\GuzzleCollector">
-            <argument />
-            <argument type="service" id="csa_guzzle.data_collector.history_bag" />
-            <tag name="data_collector" template="@CsaGuzzle/Collector/guzzle.html.twig" id="guzzle" />
+            <argument type="service" id="csa_guzzle.subscriber.debug" />
+            <tag name="data_collector" template="CsaGuzzleBundle:Collector:guzzle" id="guzzle" />
         </service>
 
     </services>
