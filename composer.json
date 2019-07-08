@@ -1,5 +1,5 @@
 {
-    "name": "csa/guzzle-bundle",
+    "name": "prestashop/guzzle-bundle",
     "description": "A bundle integrating GuzzleHttp >= 4.0",
     "license": "MIT",
     "type": "symfony-bundle",

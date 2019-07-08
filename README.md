@@ -3,8 +3,8 @@ CsaGuzzleBundle
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/csarrazi/CsaGuzzleBundle?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Latest Stable Version](https://poser.pugx.org/csa/guzzle-bundle/v/stable.png)](https://packagist.org/packages/csa/guzzle-bundle "Latest Stable Version")
-[![Latest Unstable Version](https://poser.pugx.org/csa/guzzle-bundle/v/unstable.png)](https://packagist.org/packages/csa/guzzle-bundle "Latest Unstable Version")
+[![Latest Stable Version](https://poser.pugx.org/prestashop/guzzle-bundle/v/stable.png)](https://packagist.org/packages/prestashop/guzzle-bundle "Latest Stable Version")
+[![Latest Unstable Version](https://poser.pugx.org/prestashop/guzzle-bundle/v/unstable.png)](https://packagist.org/packages/prestashop/guzzle-bundle "Latest Unstable Version")
 [![Build Status](https://travis-ci.org/csarrazi/CsaGuzzleBundle.png?branch=master)](https://travis-ci.org/csarrazi/CsaGuzzleBundle "Build status")
 [![SensioLabsInsight](https://insight.sensiolabs.com/projects/eceadd60-cc6c-473c-9d20-e8207654d70b/mini.png)](https://insight.sensiolabs.com/projects/eceadd60-cc6c-473c-9d20-e8207654d70b "SensioLabsInsight")
 
@@ -29,7 +29,7 @@ Installation
 Add the required package using composer.
 
 ```bash
-composer require csa/guzzle-bundle:@stable
+composer require prestashop/guzzle-bundle:@stable
 ```
 
 Add the bundle to your AppKernel.
